@@ -1,0 +1,300 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#08090b">
+  <title>Registrar — Student Records</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=JetBrains+Mono:wght@400;500&family=Manrope:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="ambient" aria-hidden="true"></div>
+
+  <!-- ============ Top bar ============ -->
+  <header class="topbar">
+    <div class="topbar-inner">
+      <a class="brand" href="#" aria-label="Registrar home">
+        <span class="brand-mark">R</span>
+        <span class="brand-text">
+          <span class="brand-name">Registrar</span>
+          <span class="brand-sub">Student Records</span>
+        </span>
+      </a>
+
+      <div class="topbar-actions">
+        <button class="status-pill" id="statusPill" data-state="checking" type="button" title="Connection settings">
+          <span class="status-dot"></span>
+          <span class="status-text">Connecting…</span>
+        </button>
+        <button class="icon-btn" id="settingsBtn" type="button" aria-label="Connection settings" title="Settings">
+          <i data-icon="sliders"></i>
+        </button>
+        <button class="btn btn-primary" id="newBtn" type="button">
+          <i data-icon="plus"></i><span class="hide-sm">New student</span><kbd class="hide-sm">N</kbd>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <main class="shell">
+    <!-- ============ Hero ============ -->
+    <section class="hero">
+      <p class="eyebrow" id="todayLabel">Overview</p>
+      <h1>Student <em>records</em></h1>
+      <p class="lede">Enrol, review and manage every student in one place, backed live by your FastAPI service.</p>
+    </section>
+
+    <!-- ============ Stats ============ -->
+    <section class="stats" aria-label="Summary">
+      <article class="stat">
+        <div class="stat-icon"><i data-icon="users"></i></div>
+        <p class="stat-label">Total students</p>
+        <p class="stat-value" id="statTotal">—</p>
+        <p class="stat-foot" id="statTotalFoot">Across all courses</p>
+      </article>
+      <article class="stat">
+        <div class="stat-icon"><i data-icon="chart"></i></div>
+        <p class="stat-label">Average marks</p>
+        <p class="stat-value"><span id="statAvg">—</span><span class="stat-unit">/100</span></p>
+        <div class="stat-bar"><span id="statAvgBar"></span></div>
+      </article>
+      <article class="stat">
+        <div class="stat-icon"><i data-icon="trophy"></i></div>
+        <p class="stat-label">Top performer</p>
+        <p class="stat-value stat-value-text" id="statTop">—</p>
+        <p class="stat-foot" id="statTopFoot">Highest marks overall</p>
+      </article>
+      <article class="stat">
+        <div class="stat-icon"><i data-icon="book"></i></div>
+        <p class="stat-label">Courses</p>
+        <p class="stat-value" id="statCourses">—</p>
+        <p class="stat-foot" id="statCoursesFoot">Offered right now</p>
+      </article>
+    </section>
+
+    <!-- ============ Records panel ============ -->
+    <section class="panel" id="panel" aria-label="Student records">
+      <div class="progress" aria-hidden="true"></div>
+
+      <div class="toolbar">
+        <form class="search" id="lookupForm" role="search" autocomplete="off">
+          <i data-icon="search"></i>
+          <label class="sr-only" for="lookupInput">Look up a student by ID</label>
+          <input id="lookupInput" type="search" placeholder="Look up by student ID…" spellcheck="false">
+          <kbd>/</kbd>
+        </form>
+
+        <div class="filters">
+          <div class="control control-course">
+            <label class="sr-only" for="courseInput">Filter by course</label>
+            <input id="courseInput" class="input" type="text" list="courseList" placeholder="All courses" spellcheck="false">
+            <button class="control-clear" id="courseClear" type="button" aria-label="Clear course filter" hidden><i data-icon="x" data-size="14"></i></button>
+          </div>
+          <label class="sr-only" for="sortSelect">Sort by</label>
+          <select id="sortSelect" class="input select">
+            <option value="">Sort: Default (ID)</option>
+            <option value="marks">Sort: Marks</option>
+            <option value="age">Sort: Age</option>
+            <option value="name">Sort: Name</option>
+          </select>
+          <button class="seg-btn" id="orderBtn" type="button" data-order="asc" disabled>
+            <i data-icon="arrowUp" data-size="15"></i><span>Asc</span>
+          </button>
+          <label class="sr-only" for="limitSelect">Rows per page</label>
+          <select id="limitSelect" class="input select select-sm">
+            <option value="5">5 / page</option>
+            <option value="10">10 / page</option>
+            <option value="20">20 / page</option>
+            <option value="50">50 / page</option>
+          </select>
+          <button class="icon-btn" id="refreshBtn" type="button" aria-label="Refresh" title="Refresh (R)">
+            <i data-icon="refresh"></i>
+          </button>
+        </div>
+      </div>
+
+      <div class="chips" id="chips"></div>
+
+      <div class="table-wrap">
+        <table class="table" id="table">
+          <thead>
+            <tr>
+              <th scope="col" data-col="id"><button class="th-btn" type="button" data-sort="">ID<span class="sort-ind"></span></button></th>
+              <th scope="col" data-col="name"><button class="th-btn" type="button" data-sort="name">Student<span class="sort-ind"></span></button></th>
+              <th scope="col" data-col="age"><button class="th-btn" type="button" data-sort="age">Age<span class="sort-ind"></span></button></th>
+              <th scope="col">Course</th>
+              <th scope="col" data-col="marks"><button class="th-btn" type="button" data-sort="marks">Marks<span class="sort-ind"></span></button></th>
+              <th scope="col">Grade</th>
+              <th scope="col" class="ta-r"><span class="sr-only">Actions</span></th>
+            </tr>
+          </thead>
+          <tbody id="tbody"></tbody>
+        </table>
+        <div class="empty" id="empty" hidden></div>
+      </div>
+
+      <footer class="pager">
+        <p class="pager-info" id="pagerInfo" aria-live="polite"></p>
+        <nav class="pager-btns" id="pager" aria-label="Pagination"></nav>
+      </footer>
+    </section>
+
+    <p class="footnote">Shortcuts: <kbd>/</kbd> look up · <kbd>N</kbd> new student · <kbd>R</kbd> refresh · <kbd>Esc</kbd> close</p>
+  </main>
+
+  <datalist id="courseList"></datalist>
+
+  <!-- ============ Create / edit dialog ============ -->
+  <dialog class="modal" id="formDialog" aria-labelledby="formTitle">
+    <form class="modal-card" id="studentForm" novalidate>
+      <header class="modal-head">
+        <div>
+          <p class="eyebrow" id="formEyebrow">New enrolment</p>
+          <h2 id="formTitle">Add a student</h2>
+        </div>
+        <button type="button" class="icon-btn" data-close aria-label="Close"><i data-icon="x"></i></button>
+      </header>
+
+      <div class="modal-body">
+        <div class="form-banner" id="formBanner" role="alert" hidden></div>
+        <div class="form-grid">
+          <div class="field" data-field="id">
+            <label for="f-id">Student ID</label>
+            <input id="f-id" class="input mono" autocomplete="off" spellcheck="false" placeholder="S013" maxlength="50">
+            <p class="field-error"></p>
+          </div>
+          <div class="field" data-field="age">
+            <label for="f-age">Age</label>
+            <input id="f-age" class="input" type="number" inputmode="numeric" min="1" max="100" step="1" placeholder="21">
+            <p class="field-error"></p>
+          </div>
+          <div class="field span-2" data-field="name">
+            <label for="f-name">Full name</label>
+            <input id="f-name" class="input" autocomplete="off" placeholder="Ananya Iyer" maxlength="50">
+            <p class="field-error"></p>
+          </div>
+          <div class="field span-2" data-field="email">
+            <label for="f-email">Email</label>
+            <input id="f-email" class="input" type="email" autocomplete="off" spellcheck="false" placeholder="ananya.iyer@example.com">
+            <p class="field-error"></p>
+          </div>
+          <div class="field span-2" data-field="course">
+            <label for="f-course">Course</label>
+            <input id="f-course" class="input" list="courseList" autocomplete="off" placeholder="Python" maxlength="50">
+            <p class="field-error"></p>
+          </div>
+          <div class="field span-2" data-field="marks">
+            <div class="label-row">
+              <label for="f-marks">Marks</label>
+              <span class="grade-preview" id="gradePreview">—</span>
+            </div>
+            <div class="marks-input">
+              <input id="f-marks-range" class="range" type="range" min="0" max="100" step="1" value="75" aria-label="Marks slider">
+              <input id="f-marks" class="input mono" type="number" inputmode="numeric" min="0" max="100" step="1" value="75">
+            </div>
+            <p class="field-error"></p>
+          </div>
+        </div>
+      </div>
+
+      <footer class="modal-foot">
+        <button type="button" class="btn btn-ghost" data-close>Cancel</button>
+        <button type="submit" class="btn btn-primary" id="formSubmit"><span class="btn-label">Create student</span></button>
+      </footer>
+    </form>
+  </dialog>
+
+  <!-- ============ Detail drawer ============ -->
+  <dialog class="drawer" id="detailDrawer" aria-labelledby="detailName">
+    <div class="drawer-card">
+      <header class="drawer-head">
+        <p class="eyebrow">Student profile</p>
+        <button type="button" class="icon-btn" data-close aria-label="Close"><i data-icon="x"></i></button>
+      </header>
+      <div class="drawer-body" id="detailBody"></div>
+      <footer class="drawer-foot">
+        <button type="button" class="btn btn-danger-ghost" data-act="delete"><i data-icon="trash" data-size="16"></i>Delete</button>
+        <button type="button" class="btn btn-primary" data-act="edit"><i data-icon="edit" data-size="16"></i>Edit details</button>
+      </footer>
+    </div>
+  </dialog>
+
+  <!-- ============ Confirm delete ============ -->
+  <dialog class="modal modal-sm" id="confirmDialog" aria-labelledby="confirmTitle">
+    <div class="modal-card">
+      <div class="modal-body confirm-body">
+        <div class="confirm-icon"><i data-icon="trash" data-size="22"></i></div>
+        <h2 id="confirmTitle">Delete this student?</h2>
+        <p id="confirmText">This permanently removes the record.</p>
+      </div>
+      <footer class="modal-foot">
+        <button type="button" class="btn btn-ghost" data-close>Keep record</button>
+        <button type="button" class="btn btn-danger" id="confirmBtn"><span class="btn-label">Delete</span></button>
+      </footer>
+    </div>
+  </dialog>
+
+  <!-- ============ Settings ============ -->
+  <dialog class="modal" id="settingsDialog" aria-labelledby="settingsTitle">
+    <form class="modal-card" id="settingsForm" novalidate>
+      <header class="modal-head">
+        <div>
+          <p class="eyebrow">Connection</p>
+          <h2 id="settingsTitle">API settings</h2>
+        </div>
+        <button type="button" class="icon-btn" data-close aria-label="Close"><i data-icon="x"></i></button>
+      </header>
+
+      <div class="modal-body">
+        <div class="field">
+          <label for="s-url">API base URL</label>
+          <div class="input-row">
+            <input id="s-url" class="input mono" type="url" spellcheck="false" placeholder="http://127.0.0.1:8000">
+            <button type="button" class="btn btn-ghost" id="s-test">Test</button>
+          </div>
+          <p class="test-result" id="s-result" aria-live="polite"></p>
+        </div>
+
+        <label class="setting-row" for="s-demo">
+          <span>
+            <span class="setting-title">Demo mode</span>
+            <span class="setting-sub">Use realistic in-browser sample data instead of the API.</span>
+          </span>
+          <span class="switch">
+            <input id="s-demo" type="checkbox" role="switch">
+            <span class="switch-track"><span class="switch-thumb"></span></span>
+          </span>
+        </label>
+        <button type="button" class="link-btn" id="s-reset">Reset demo data</button>
+
+        <div class="hint-block">
+          <div class="hint-head">
+            <span>Allow this page in FastAPI (CORS)</span>
+            <button type="button" class="link-btn" id="s-copy"><i data-icon="copy" data-size="14"></i>Copy</button>
+          </div>
+<pre class="code-block" id="corsSnippet">from fastapi.middleware.cors import CORSMiddleware
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_methods=["*"],
+    allow_headers=["*"],
+)</pre>
+        </div>
+      </div>
+
+      <footer class="modal-foot">
+        <button type="button" class="btn btn-ghost" data-close>Cancel</button>
+        <button type="submit" class="btn btn-primary"><span class="btn-label">Save &amp; reconnect</span></button>
+      </footer>
+    </form>
+  </dialog>
+
+  <div class="toasts" id="toasts" aria-live="polite"></div>
+
+  <script src="app.js"></script>
+</body>
+</html>

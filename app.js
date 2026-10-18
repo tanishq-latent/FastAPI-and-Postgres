@@ -14,7 +14,7 @@
 const SORT_FIELDS = ['marks', 'age', 'name'];
 const EDITABLE_FIELDS = ['name', 'age', 'email', 'course', 'marks'];
 const STORAGE_KEY = 'registrar:settings:v1';
-const DEFAULTS = Object.freeze({ baseUrl: 'http://127.0.0.1:8000', demo: false, limit: 10 });
+const DEFAULTS = Object.freeze({ baseUrl: 'https://fastapi-and-postgres.onrender.com', demo: false, limit: 10 });
 const REQUEST_TIMEOUT = 10000;
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
 

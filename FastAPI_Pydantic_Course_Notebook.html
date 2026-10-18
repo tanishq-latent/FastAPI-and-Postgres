@@ -1,0 +1,909 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<title>FastAPI &amp; Pydantic Course Notebook</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=IBM+Plex+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+/* Layout: sticky XP header, chapter rail on the left (chips on phone), one chapter "level" at a time in the main column */
+:root{
+  --bg:#f3f6f5; --surface:#ffffff; --sunk:#e9efed; --ink:#13201e; --muted:#566664; --line:#d7e1de;
+  --accent:#00796b; --accent-ink:#ffffff; --accent-soft:#d6efea;
+  --xp:#b86e00; --xp-soft:#fbecd2;
+  --ok:#2e7d32; --ok-soft:#dcf0dd; --err:#c0392b; --err-soft:#f8dedb;
+  --get:#1f6fd1; --post:#2e8b57; --put:#c27c0e; --del:#c0392b;
+  --pg:#336791; --pg-soft:#dde8f3;
+  --code-bg:#0f1918; --code-fg:#dbe7e4; --code-kw:#7fd1c4; --code-str:#f0c674; --code-com:#6f8783; --code-dec:#c7a0f0; --code-num:#f59f7a;
+  --f-display:"Bricolage Grotesque", "Segoe UI", system-ui, sans-serif;
+  --f-body:"IBM Plex Sans", "Segoe UI", system-ui, sans-serif;
+  --f-mono:"JetBrains Mono", ui-monospace, Menlo, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0c1312; --surface:#131e1d; --sunk:#0f1817; --ink:#e2ebe8; --muted:#93a5a1; --line:#24332f;
+  --accent:#3cc4b0; --accent-ink:#06211d; --accent-soft:#163a35;
+  --xp:#f1a83c; --xp-soft:#3a2a10;
+  --ok:#6cc070; --ok-soft:#173219; --err:#ef7b6e; --err-soft:#3c1915;
+  --get:#6aa8f5; --post:#5fc58b; --put:#eab14f; --del:#ef7b6e;
+  --pg:#7aa7d6; --pg-soft:#16304a;
+  --code-bg:#08100f; color-scheme:dark;}}
+:root[data-theme="dark"]{
+  --bg:#0c1312; --surface:#131e1d; --sunk:#0f1817; --ink:#e2ebe8; --muted:#93a5a1; --line:#24332f;
+  --accent:#3cc4b0; --accent-ink:#06211d; --accent-soft:#163a35;
+  --xp:#f1a83c; --xp-soft:#3a2a10;
+  --ok:#6cc070; --ok-soft:#173219; --err:#ef7b6e; --err-soft:#3c1915;
+  --get:#6aa8f5; --post:#5fc58b; --put:#eab14f; --del:#ef7b6e;
+  --pg:#7aa7d6; --pg-soft:#16304a;
+  --code-bg:#08100f; color-scheme:dark;}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:16px;line-height:1.6}
+h1,h2,h3{font-family:var(--f-display);text-wrap:balance;line-height:1.15;margin:0}
+code,pre,.mono{font-family:var(--f-mono)}
+button{font:inherit;cursor:pointer}
+:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+a{color:var(--accent)}
+
+/* header */
+.top{position:sticky;top:env(safe-area-inset-top,0px);z-index:20;background:var(--surface);border-bottom:1px solid var(--line)}
+.top-in{max-width:1240px;margin:0 auto;padding:12px 16px;display:flex;flex-wrap:wrap;gap:12px 20px;align-items:center}
+.brand{display:flex;align-items:center;gap:10px;min-width:0}
+.logo{width:36px;height:36px;border-radius:9px;background:var(--accent);color:var(--accent-ink);display:grid;place-items:center;font-family:var(--f-display);font-weight:800;font-size:18px;flex:none}
+.brand h1{font-size:1.25rem;font-weight:800}
+.brand small{display:block;color:var(--muted);font-size:.8rem;line-height:1.2}
+.xpbox{flex:1 1 260px;min-width:0;display:flex;align-items:center;gap:12px}
+.lvl{font-family:var(--f-display);font-weight:700;white-space:nowrap;font-size:.95rem}
+.lvl span{color:var(--xp)}
+.bar{flex:1;height:10px;border-radius:99px;background:var(--sunk);overflow:hidden;min-width:80px}
+.bar i{display:block;height:100%;width:0;background:var(--xp);border-radius:99px;transition:width .5s ease}
+.xpnum{font-family:var(--f-mono);font-size:.85rem;color:var(--xp);white-space:nowrap;font-variant-numeric:tabular-nums}
+
+/* shell */
+.shell{max-width:1240px;margin:0 auto;padding-inline:16px;padding-block:20px 60px;display:grid;grid-template-columns:250px minmax(0,1fr);gap:28px}
+.rail{position:sticky;top:calc(env(safe-area-inset-top,0px) + 90px);align-self:start;display:flex;flex-direction:column;gap:4px}
+.rail .sec{font-size:.72rem;text-transform:uppercase;letter-spacing:.09em;color:var(--muted);margin:14px 8px 4px;font-weight:600}
+.rail .sec:first-child{margin-top:0}
+.nav{display:flex;align-items:center;gap:10px;text-align:left;background:none;border:0;border-radius:10px;padding:7px 10px;color:var(--ink);font-size:.92rem}
+.nav:hover{background:var(--sunk)}
+.nav[aria-current="true"]{background:var(--accent-soft);color:var(--ink);font-weight:600}
+.nav .n{width:24px;height:24px;border-radius:50%;border:2px solid var(--line);display:grid;place-items:center;font-size:.72rem;font-family:var(--f-mono);flex:none;color:var(--muted)}
+.nav.done .n{background:var(--ok);border-color:var(--ok);color:var(--surface)}
+.nav .t{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+main{min-width:0}
+
+@media (max-width:860px){
+  .shell{grid-template-columns:minmax(0,1fr);gap:16px}
+  .rail{position:static;flex-direction:row;overflow-x:auto;padding-bottom:6px;gap:6px;scrollbar-width:thin}
+  .rail .sec{display:none}
+  .nav{flex:none;border:1px solid var(--line);background:var(--surface)}
+  .nav .t{display:none}
+  .nav.wide .t{display:inline}
+}
+
+/* blocks */
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:22px}
+.stack{display:flex;flex-direction:column;gap:18px}
+.eyebrow{font-size:.75rem;text-transform:uppercase;letter-spacing:.1em;color:var(--accent);font-weight:600}
+.chhead{display:flex;flex-direction:column;gap:10px}
+.chhead h2{font-size:clamp(1.7rem,4vw,2.4rem);font-weight:800}
+.meta{display:flex;flex-wrap:wrap;gap:8px}
+.chip{font-family:var(--f-mono);font-size:.78rem;padding:3px 10px;border-radius:99px;background:var(--sunk);color:var(--muted);border:1px solid var(--line)}
+.chip.xp{background:var(--xp-soft);color:var(--xp);border-color:transparent}
+.chip.ok{background:var(--ok-soft);color:var(--ok);border-color:transparent}
+.goal{font-size:1.08rem;max-width:68ch}
+h3{font-size:1.15rem;font-weight:700;margin-bottom:10px}
+.covers{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:8px;padding:0;margin:0;list-style:none}
+.covers li{background:var(--sunk);border-radius:10px;padding:9px 12px;font-size:.93rem;display:flex;gap:8px}
+.covers li::before{content:"→";color:var(--accent);font-weight:700}
+.prose p{margin:0 0 10px;max-width:70ch}
+.prose p:last-child{margin-bottom:0}
+.prose code,.covers code,.checks code,.quiz code{background:var(--sunk);padding:1px 5px;border-radius:5px;font-size:.88em}
+.tbl{overflow-x:auto}
+table{border-collapse:collapse;width:100%;font-size:.92rem}
+th,td{text-align:left;padding:8px 10px;border-bottom:1px solid var(--line)}
+th{font-size:.75rem;text-transform:uppercase;letter-spacing:.06em;color:var(--muted)}
+
+/* code */
+.code{border-radius:12px;overflow:hidden;background:var(--code-bg);color:var(--code-fg)}
+.code-h{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:8px 12px;border-bottom:1px solid rgba(255,255,255,.08);font-family:var(--f-mono);font-size:.78rem;color:#9fb3af}
+.code-h button{background:rgba(255,255,255,.08);color:#dbe7e4;border:0;border-radius:6px;padding:3px 10px;font-size:.75rem}
+.code-h button:hover{background:rgba(255,255,255,.16)}
+.code pre{margin:0;padding:14px 16px;overflow-x:auto;font-size:.84rem;line-height:1.6;tab-size:4}
+.k{color:var(--code-kw)} .s{color:var(--code-str)} .c{color:var(--code-com);font-style:italic} .d{color:var(--code-dec)} .nu{color:var(--code-num)}
+
+
+/* checks */
+.checks{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:6px}
+.checks label{display:flex;gap:12px;align-items:flex-start;padding:10px 12px;border-radius:10px;border:1px solid var(--line);cursor:pointer}
+.checks label:hover{background:var(--sunk)}
+.checks input{width:20px;height:20px;accent-color:var(--ok);margin-top:2px;flex:none}
+.checks input:checked + span{color:var(--muted);text-decoration:line-through}
+.checks .pts{margin-left:auto;font-family:var(--f-mono);font-size:.75rem;color:var(--xp);white-space:nowrap}
+
+/* quiz */
+.q{border:1px solid var(--line);border-radius:12px;padding:14px 16px;display:flex;flex-direction:column;gap:10px}
+.q p.qt{margin:0;font-weight:600}
+.opts{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:8px}
+.opt{text-align:left;background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:9px 12px;color:var(--ink);font-size:.93rem}
+.opt:hover:not(:disabled){border-color:var(--accent)}
+.opt.right{background:var(--ok-soft);border-color:var(--ok);color:var(--ink)}
+.opt.wrong{background:var(--err-soft);border-color:var(--err);color:var(--ink)}
+.opt:disabled{cursor:default}
+.why{font-size:.9rem;color:var(--muted);margin:0}
+.why b{color:var(--ink)}
+
+.navrow{display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.btn{border:1px solid var(--line);background:var(--surface);color:var(--ink);border-radius:10px;padding:9px 16px;font-weight:500}
+.btn:hover{border-color:var(--accent)}
+.btn.primary{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+.btn.small{padding:5px 10px;font-size:.85rem}
+
+.complete{display:flex;align-items:center;gap:14px;background:var(--ok-soft);border-radius:14px;padding:14px 18px}
+.medal{width:52px;height:52px;border-radius:50%;background:var(--ok);color:var(--surface);display:grid;place-items:center;font-family:var(--f-display);font-weight:800;font-size:1.2rem;flex:none}
+
+/* roadmap */
+.hero h2{font-size:clamp(2rem,5vw,3.1rem);font-weight:800;max-width:18ch}
+.hero p{max-width:62ch;color:var(--muted);font-size:1.05rem;margin:10px 0 0}
+.timeline{display:flex;height:46px;border-radius:10px;overflow:hidden;gap:2px}
+.seg{border:0;padding:0;color:#fff;font-family:var(--f-mono);font-size:.75rem;font-weight:600;min-width:0;opacity:.9}
+.seg:hover{opacity:1}
+.seg.s1{background:#1f6fd1}.seg.s2{background:#2e8b57}.seg.s3{background:#8e5bd0}.seg.s4{background:#c27c0e}
+.seg.done{box-shadow:inset 0 -6px 0 rgba(0,0,0,.35)}
+.legend{display:flex;flex-wrap:wrap;gap:8px 18px;font-size:.85rem;margin-top:12px}
+.legend span{display:flex;align-items:center;gap:6px}
+.legend i{width:12px;height:12px;border-radius:3px;display:inline-block}
+.grid2{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:18px}
+.grid2>*{min-width:0}
+
+.ep{display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:9px;border:1px solid var(--line);font-family:var(--f-mono);font-size:.82rem}
+.ep + .ep{margin-top:6px}
+.ep.locked{opacity:.45}
+.ep .pth{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.mth{font-weight:700;font-size:.7rem;padding:3px 0;width:58px;text-align:center;border-radius:5px;color:#fff;flex:none}
+.mth.GET{background:var(--get)}.mth.POST{background:var(--post)}.mth.PUT{background:var(--put)}.mth.DELETE{background:var(--del)}
+.lock{font-size:.72rem;color:var(--muted);white-space:nowrap}
+
+.badges{display:grid;grid-template-columns:repeat(auto-fill,minmax(96px,1fr));gap:10px}
+.badge{display:flex;flex-direction:column;align-items:center;gap:6px;text-align:center;font-size:.75rem;color:var(--muted)}
+.badge .b{width:54px;height:54px;border-radius:50%;display:grid;place-items:center;border:2px dashed var(--line);font-family:var(--f-display);font-weight:800;color:var(--muted)}
+.badge.got{color:var(--ink)}
+.badge.got .b{border:0;background:var(--xp);color:var(--surface);animation:pop .4s ease}
+@keyframes pop{0%{transform:scale(.6)}70%{transform:scale(1.12)}100%{transform:scale(1)}}
+
+/* playground */
+.req{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:8px}
+select,input[type=text],textarea{font:inherit;font-family:var(--f-mono);font-size:.88rem;background:var(--sunk);color:var(--ink);border:1px solid var(--line);border-radius:10px;padding:9px 10px;min-width:0}
+textarea{width:100%;min-height:150px;resize:vertical}
+.presets{display:flex;flex-wrap:wrap;gap:6px}
+.resp{border-radius:12px;background:var(--code-bg);color:var(--code-fg);overflow:hidden}
+.status{font-family:var(--f-mono);font-weight:700;padding:2px 9px;border-radius:6px;font-size:.8rem}
+.st2{background:#2e8b57;color:#fff}.st4{background:#c0392b;color:#fff}.st0{background:#55625f;color:#fff}
+.missions{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:8px}
+.mis{display:flex;gap:10px;align-items:center;border:1px solid var(--line);border-radius:10px;padding:9px 11px;font-size:.88rem}
+.mis .dot{width:18px;height:18px;border-radius:50%;border:2px solid var(--line);flex:none}
+.mis.got{background:var(--ok-soft);border-color:transparent}
+.mis.got .dot{background:var(--ok);border-color:var(--ok)}
+@media (max-width:520px){.req{grid-template-columns:1fr 1fr}.req input{grid-column:1/-1;order:3}}
+
+/* chapter 7 connection diagram */
+.fw-tabs{display:flex;gap:8px;flex-wrap:wrap}
+.fw-tabs .btn[aria-pressed="true"]{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+.fw{display:grid;grid-template-columns:minmax(0,330px) minmax(0,1fr);gap:24px;align-items:start}
+@media (max-width:1000px){.fw{grid-template-columns:minmax(0,1fr)}}
+.fw-grp{position:relative;border:1.5px dashed var(--accent);border-radius:14px;padding:24px 10px 10px}
+.fw-grp.pg{border-color:var(--pg)}
+.fw-grp>.fw-gt{position:absolute;top:-10px;left:12px;background:var(--surface);padding:0 7px;font-size:.7rem;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--accent)}
+.fw-grp.pg>.fw-gt{color:var(--pg)}
+.fw-nd{display:flex;gap:11px;align-items:center;background:var(--surface);border:1.5px solid var(--line);border-radius:11px;padding:10px 12px;transition:border-color .3s,box-shadow .3s,transform .3s,opacity .4s}
+.fw-ic{flex:none;width:38px;height:38px;border-radius:9px;display:grid;place-items:center;font-family:var(--f-mono);font-size:.75rem;font-weight:600;background:var(--accent-soft);color:var(--accent)}
+.fw-nd.pg .fw-ic{background:var(--pg-soft);color:var(--pg)}
+.fw-nd.cl .fw-ic{background:var(--xp-soft);color:var(--xp)}
+.fw-nd b{display:block;font-family:var(--f-display);font-size:.95rem;line-height:1.25}
+.fw-nd small{display:block;color:var(--muted);font-size:.8rem;line-height:1.35}
+.fw-rows{display:inline-block;margin-top:4px;padding:1px 8px;border-radius:99px;font-family:var(--f-mono);font-size:.72rem;background:var(--pg-soft);color:var(--pg)}
+.fw-nd.on{border-color:var(--xp);box-shadow:0 0 0 4px color-mix(in srgb,var(--xp) 22%,transparent);transform:translateX(4px)}
+.fw-nd.ghost{opacity:.35;border-style:dashed;box-shadow:none;transform:none}
+.fw-wr{height:34px;width:2px;margin-left:31px;background:var(--line);position:relative;transition:background .3s}
+.fw-wr.on{background:var(--xp)}
+.fw-wr.on::after{content:"";position:absolute;left:50%;width:12px;height:12px;margin-left:-6px;border-radius:50%;background:var(--xp);animation:fwdown 1.1s linear infinite}
+.fw-wr.on.up::after{animation-name:fwup}
+.fw-wl{position:absolute;left:18px;top:50%;transform:translateY(-50%);white-space:nowrap;font-family:var(--f-mono);font-size:.74rem;font-weight:600;color:var(--xp);opacity:0;transition:opacity .3s}
+.fw-wr.on .fw-wl{opacity:1}
+@keyframes fwdown{from{top:-6px}to{top:calc(100% - 6px)}}
+@keyframes fwup{from{top:calc(100% - 6px)}to{top:-6px}}
+.fw-pn{border:1px solid var(--line);border-radius:14px;padding:18px;display:flex;flex-direction:column;gap:12px;min-width:0;background:var(--bg)}
+.fw-pm{display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;font-size:.72rem;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.fw-pm span:first-child{color:var(--xp)}
+.fw-pn h4{margin:0;font-family:var(--f-display);font-size:1.3rem;line-height:1.2;text-wrap:balance}
+.fw-sy{margin:0;padding:10px 12px;border-radius:10px;background:var(--xp-soft);color:var(--ink);font-size:.95rem}
+.fw-sy strong{color:var(--xp)}
+.fw-ex{margin:0;max-width:62ch}
+.fw-lb{margin:0 0 6px;font-size:.72rem;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.fw-pn pre{margin:0;background:var(--code-bg);color:var(--code-fg);border-radius:10px;padding:12px 14px;font-size:.82rem;line-height:1.6;overflow-x:auto;white-space:pre}
+.fw-pn pre.sql{border-left:3px solid var(--pg)}
+.fw-ns{margin:0;color:var(--muted);font-style:italic;font-size:.92rem}
+.fw-ctl{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.fw-ctl .btn:disabled{opacity:.4;cursor:default}
+.fw-dots{display:flex;gap:6px;flex-wrap:wrap;margin-left:auto}
+.fw-dots button{width:12px;height:12px;padding:0;border:0;border-radius:50%;background:var(--line)}
+.fw-dots button.on{background:var(--xp)}.fw-dots button.past{background:color-mix(in srgb,var(--xp) 45%,var(--line))}
+.fw-rule{display:flex;gap:6px 18px;flex-wrap:wrap;align-items:center;padding:10px 14px;border-radius:10px;background:var(--sunk);font-size:.9rem}
+.fw-rule span{font-family:var(--f-mono);font-size:.82rem}.fw-rule i{font-style:normal;color:var(--xp);font-weight:600}
+@media (prefers-reduced-motion:reduce){.fw-wr.on::after{top:calc(50% - 6px)}}
+
+.toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom,0px));transform:translateX(-50%) translateY(20px);background:var(--ink);color:var(--bg);padding:10px 18px;border-radius:12px;font-weight:600;opacity:0;transition:.25s;pointer-events:none;z-index:50;max-width:calc(100% - 32px);text-align:center}
+.toast.on{opacity:1;transform:translateX(-50%) translateY(0)}
+.confirm{display:flex;gap:8px;align-items:center;flex-wrap:wrap;font-size:.9rem}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+
+<header class="top">
+  <div class="top-in">
+    <div class="brand"><div class="logo">F</div><div><h1>FastAPI &amp; Pydantic</h1><small>Complete course notebook</small></div></div>
+    <div class="xpbox">
+      <div class="lvl">Lv <span id="lvlNum">1</span> · <span id="lvlName">Hello World</span></div>
+      <div class="bar" aria-hidden="true"><i id="xpBar"></i></div>
+      <div class="xpnum"><span id="xpNow">0</span> / <span id="xpMax">0</span> XP</div>
+    </div>
+  </div>
+</header>
+
+<div class="shell">
+  <nav class="rail" id="rail" aria-label="Course sections"></nav>
+  <main id="main"></main>
+</div>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<script>
+/* ------------------------------------------------------------------ content */
+const STAGES = {
+  s1:{name:"FastAPI basics on JSON", color:"#1f6fd1"},
+  s2:{name:"Pydantic + CRUD", color:"#2e8b57"},
+  s3:{name:"Database", color:"#8e5bd0"},
+  s4:{name:"Docker + deploy", color:"#c27c0e"}
+};
+
+const DATASET = `{
+  "S001": {"name": "Aarav Sharma", "age": 20, "email": "aarav@example.com", "course": "Python", "marks": 85},
+  "S002": {"name": "Priya Patel", "age": 22, "email": "priya@example.com", "course": "Web Development", "marks": 92},
+  "S003": {"name": "Rohan Verma", "age": 21, "email": "rohan@example.com", "course": "Data Science", "marks": 67},
+  "S004": {"name": "Sneha Reddy", "age": 19, "email": "sneha@example.com", "course": "Python", "marks": 74},
+  "S005": {"name": "Kabir Singh", "age": 23, "email": "kabir@example.com", "course": "Data Science", "marks": 58}
+}`;
+
+const CH = [
+{ id:1, stage:"s1", title:"Introduction and setup", badge:"Hello, API", abbr:"HI",
+  goal:"Understand what an API is, why FastAPI is popular, and run your very first endpoint.",
+  covers:["What an API is (the waiter analogy)","What FastAPI is and why developers love it","Creating a virtual environment","Installing <code>fastapi</code> and <code>uvicorn</code>","Writing your first endpoint","The free interactive docs at <code>/docs</code>"],
+  concept:`<p>An <b>API</b> is like a waiter in a restaurant. You (the client) don't walk into the kitchen. You give your order to the waiter, the waiter brings it to the kitchen (the server), and comes back with your food (the response).</p>
+<p><b>FastAPI</b> is a Python framework for building APIs. It is fast, it uses normal Python type hints, and it writes documentation for you automatically. <b>Uvicorn</b> is the server that actually runs your FastAPI app.</p>`,
+  checks:["Created and activated a virtual environment","Installed fastapi and uvicorn","Server runs with <code>uvicorn main:app --reload</code>","Saw the JSON message at <code>http://127.0.0.1:8000</code>","Opened <code>/docs</code> and tried the endpoint"],
+  quiz:[
+    {q:"What is Uvicorn's job?",o:["It runs (serves) the FastAPI app","It validates data","It is a database","It writes HTML pages"],a:0,w:"FastAPI defines the API; Uvicorn is the server that runs it."},
+    {q:"Which URL gives you interactive docs for free?",o:["/help","/docs","/admin","/api-info"],a:1,w:"FastAPI builds Swagger UI at /docs (and ReDoc at /redoc)."},
+    {q:"What does <code>--reload</code> do?",o:["Reinstalls packages","Clears the browser cache","Restarts the server when you save code","Reloads the database"],a:2,w:"Great for development. Don't use it in production."}
+  ]},
+{ id:2, stage:"s1", title:"HTTP basics + loading JSON", badge:"Data Loader", abbr:"JS",
+  goal:"Learn how HTTP requests work and serve our student data from a JSON file.",
+  covers:["HTTP methods and how they map to CRUD","Status codes: 200, 201, 400, 404, 422","Creating <code>students.json</code>","A <code>load_data()</code> helper","<code>GET /about</code> and <code>GET /students</code>"],
+  concept:`<p>Every request has a <b>method</b> (what you want to do) and a <b>URL</b> (what you want to do it to). The server answers with data and a <b>status code</b>.</p>
+<div class="tbl"><table><thead><tr><th>Method</th><th>CRUD</th><th>Example</th></tr></thead><tbody>
+<tr><td><span class="mth GET">GET</span></td><td>Read</td><td>Get all students</td></tr>
+<tr><td><span class="mth POST">POST</span></td><td>Create</td><td>Add a new student</td></tr>
+<tr><td><span class="mth PUT">PUT</span></td><td>Update</td><td>Change a student's marks</td></tr>
+<tr><td><span class="mth DELETE">DELETE</span></td><td>Delete</td><td>Remove a student</td></tr></tbody></table></div>
+<p style="margin-top:12px">Status codes you will see: <code>200</code> OK, <code>201</code> Created, <code>400</code> Bad request, <code>404</code> Not found, <code>422</code> Invalid data.</p>`,
+  checks:["<code>students.json</code> sits next to <code>main.py</code>","<code>load_data()</code> reads the file","<code>GET /about</code> works","<code>GET /students</code> returns all 5 students"],
+  quiz:[
+    {q:"Which HTTP method is used to create new data?",o:["GET","POST","DELETE","PUT"],a:1,w:"POST creates. PUT updates something that already exists."},
+    {q:"What does status code 404 mean?",o:["Server crashed","Created successfully","Not found","Invalid data"],a:2,w:"404 = the thing you asked for doesn't exist."},
+    {q:"Why is students.json a dictionary keyed by ID?",o:["JSON can't store lists","So we can find a student directly by ID","It uses less memory","FastAPI requires it"],a:1,w:"<code>data[\"S001\"]</code> is instant and simple."}
+  ]},
+{ id:3, stage:"s1", title:"Path parameters", badge:"Path Finder", abbr:"PF",
+  goal:"Fetch one specific student using a value inside the URL.",
+  covers:["What a path parameter is","<code>GET /students/{student_id}</code>","Automatic type checking","<code>Path()</code> for descriptions and examples","<code>HTTPException</code> for a clean 404"],
+  concept:`<p>A <b>path parameter</b> is a variable part of the URL that points to <b>one specific thing</b>. In <code>/students/S001</code>, the value <code>S001</code> is the path parameter.</p>
+<p>If the ID doesn't exist, Python throws a <code>KeyError</code> and the user gets an ugly <code>500</code>. <code>HTTPException</code> lets us send a clear <code>404 Student not found</code> instead.</p>`,
+  checks:["<code>GET /students/S001</code> returns Aarav","<code>GET /students/S999</code> returns 404 \"Student not found\"","The description shows in <code>/docs</code>"],
+  quiz:[
+    {q:"In <code>/students/S003</code>, what is the path parameter?",o:["students","S003","/","GET"],a:1,w:"The variable part of the path is the parameter."},
+    {q:"Without the <code>if</code> check, what does a missing ID return?",o:["404","200 with empty data","500 Internal Server Error","422"],a:2,w:"The KeyError crashes the request, which becomes a 500."},
+    {q:"What does <code>raise HTTPException(status_code=404)</code> do?",o:["Stops the server","Sends an error response with that status code","Logs a warning only","Retries the request"],a:1,w:"It ends the request and returns a proper error to the client."}
+  ]},
+{ id:4, stage:"s1", title:"Query parameters", badge:"Query Ninja", abbr:"QN",
+  goal:"Filter and sort the list of students using values after the <code>?</code> in the URL.",
+  covers:["Path vs query parameters","Filter: <code>/students?course=Python</code>","Sort: <code>/sort?sort_by=marks&amp;order=desc</code>","Optional parameters and default values","<code>Query()</code> for descriptions","Returning 400 for bad input"],
+  concept:`<p><b>Query parameters</b> come after the <code>?</code> and are joined with <code>&amp;</code>. They don't pick one item; they change <b>how you see a list</b>: filter, sort, search, paginate.</p>
+<p>Simple rule: <b>path</b> = which item. <b>Query</b> = how to show the list.</p>`,
+  checks:["<code>/students?course=Python</code> returns 2 students","<code>/sort?sort_by=marks&amp;order=desc</code> puts Priya first","An invalid <code>sort_by</code> returns 400","Leaving out <code>order</code> sorts ascending"],
+  quiz:[
+    {q:"How many query parameters are in <code>/sort?sort_by=marks&amp;order=desc</code>?",o:["1","2","3","0"],a:1,w:"sort_by and order."},
+    {q:"Which is the better choice to filter a list of students by course?",o:["Path parameter","Query parameter","Request body","Header"],a:1,w:"Filtering changes how the list is shown, so it's a query parameter."},
+    {q:"If the user leaves out <code>order</code>, what happens?",o:["422 error","It defaults to \"asc\"","It returns nothing","Server crash"],a:1,w:"<code>Query(\"asc\")</code> sets the default value."}
+  ]},
+{ id:5, stage:"s2", title:"Pydantic fundamentals", badge:"Pydantic Pro", abbr:"PY",
+  goal:"Describe the shape of a student once and let Pydantic check every piece of data for you.",
+  covers:["Why plain Python doesn't check types","<code>BaseModel</code> and type hints","Automatic type conversion","<code>Field()</code> rules: <code>gt</code>, <code>lt</code>, <code>max_length</code>","<code>EmailStr</code> for emails","<code>@field_validator</code> to clean data","<code>@computed_field</code> for the grade","<code>model_dump()</code> back to a dict"],
+  concept:`<p>Plain Python happily accepts <code>age = "twenty"</code>. <b>Pydantic</b> lets you describe what valid data looks like, and it rejects anything that doesn't fit, with a clear error message.</p>
+<p>It also converts when it safely can: <code>"20"</code> becomes <code>20</code>. FastAPI uses Pydantic under the hood, so learning it on its own first makes the next chapter easy.</p>
+<p>Grade rule: 90+ = A, 75 to 89 = B, 60 to 74 = C, below 60 = D.</p>`,
+  checks:["Created the <code>Student</code> model","<code>age=-5</code> raises a ValidationError","Name is cleaned to Title Case automatically","<code>grade</code> is calculated from marks","<code>model_dump()</code> prints a dictionary"],
+  quiz:[
+    {q:"What happens with <code>Student(..., age=\"20\")</code>?",o:["ValidationError","age becomes the int 20","age stays the string \"20\"","age becomes None"],a:1,w:"Pydantic converts safe values. \"twenty\" would fail."},
+    {q:"<code>Field(..., gt=0, lt=100)</code> means:",o:["Between 0 and 100, both included","Greater than 0 and less than 100","Default is 0","Optional field"],a:1,w:"gt = greater than, lt = less than. ge/le include the boundary."},
+    {q:"What is <code>@computed_field</code> used for?",o:["Validating email","A value calculated from other fields","Making a field optional","Connecting to a database"],a:1,w:"grade is computed from marks, so the user never sends it."},
+    {q:"<code>marks=105</code> with <code>Field(ge=0, le=100)</code> gives:",o:["marks = 100","A ValidationError","marks = 105","A warning only"],a:1,w:"Pydantic rejects it with a clear message."}
+  ]},
+{ id:6, stage:"s2", title:"Request body + CRUD on JSON", badge:"CRUD Builder", abbr:"CR",
+  goal:"Create, update and delete students, with every request validated by Pydantic.",
+  covers:["What a request body is","A <code>save_data()</code> helper","<code>POST /students</code> returning 201","400 for a duplicate ID","<code>StudentUpdate</code> with optional fields","<code>PUT</code> with <code>exclude_unset</code>","<code>DELETE /students/{id}</code>","Automatic 422 errors"],
+  concept:`<p>For POST and PUT the client sends JSON in the <b>request body</b>. When you type a parameter as a Pydantic model, FastAPI reads the body, validates it, and gives you a ready Python object. Bad data gets a <code>422</code> before your code even runs.</p>
+<p>For updates we use a second model where every field is optional, so the user can send only what changed.</p>`,
+  checks:["POST adds S006 and <code>students.json</code> changes","POST with the same ID returns 400","PUT with only <code>marks</code> changes only marks","DELETE removes the student","Invalid data returns 422 automatically"],
+  quiz:[
+    {q:"Which status code means something was created?",o:["200","201","204","301"],a:1,w:"We set <code>status_code=201</code> on the POST route."},
+    {q:"What does <code>model_dump(exclude_unset=True)</code> return?",o:["Every field, with None for missing","Only the fields the user actually sent","Only required fields","An empty dict"],a:1,w:"That's why a partial update doesn't wipe other fields."},
+    {q:"Who returns the 422 error for <code>age: -5</code>?",o:["Our own if statement","FastAPI + Pydantic, automatically","The JSON file","Uvicorn crashes"],a:1,w:"Validation happens before your function runs."}
+  ]},
+{ id:7, stage:"s3", title:"Database with PostgreSQL + SQLAlchemy", badge:"DB Wizard", abbr:"DB", flow:true,
+  goal:"Replace the JSON file with a real database server, without changing how the API looks from outside.",
+  covers:["Why a JSON file isn't enough","PostgreSQL: a real database server","Installing PostgreSQL and <code>createdb studentdb</code>","<code>DATABASE_URL</code> in a <code>.env</code> file","SQLAlchemy engine, session and Base","Table model vs Pydantic schema","<code>playground.py</code>: Python talks to PostgreSQL","A seed script to move JSON into the DB","<code>Depends(get_db)</code>","<code>db.add()</code> vs <code>db.commit()</code>","<code>response_model</code> with <code>from_attributes</code>","400 for a duplicate email"],
+  concept:`<p>A JSON file breaks when many users write at once and gets slow as it grows. A database solves both. <b>PostgreSQL</b> is a database <b>server</b>: a separate program running on your computer. Your Python app connects to it and sends it commands.</p>
+<p>Think of it as a library. <b>PostgreSQL</b> is the library, <code>DATABASE_URL</code> is its address, the <b>engine</b> is the road to it (built once), and a <b>session</b> is one visit (one per request). <code>db.add()</code> puts a book on the counter; only <code>db.commit()</code> puts it on the shelf.</p>
+<p>Now you have two kinds of models. The <b>SQLAlchemy model</b> (<code>StudentDB</code>) describes how data is <b>stored</b>. The <b>Pydantic model</b> (<code>StudentCreate</code>, <code>StudentResponse</code>) describes how data <b>enters and leaves</b> the API.</p>`,
+  checks:["PostgreSQL installed and <code>studentdb</code> created","<code>DATABASE_URL</code> is in <code>.env</code>, and <code>.env</code> is in <code>.gitignore</code>","<code>python playground.py</code> prints the PostgreSQL version","<code>python seed.py</code> moved the 5 students into PostgreSQL","<code>GET /students</code> now reads from the database","POST / PUT / DELETE still work and survive a restart","A duplicate email returns 400"],
+  quiz:[
+    {q:"What does <code>Depends(get_db)</code> do?",o:["Creates a new table","Gives each request a DB session and closes it afterwards","Installs SQLAlchemy","Validates the request body"],a:1,w:"This is FastAPI's dependency injection."},
+    {q:"<code>StudentDB</code> vs <code>StudentCreate</code>: which is true?",o:["They are the same thing","StudentDB = how data is stored, StudentCreate = how data enters the API","StudentCreate is the database table","StudentDB validates emails"],a:1,w:"SQLAlchemy model for storage, Pydantic model for the API."},
+    {q:"You call <code>db.add(student)</code> but forget <code>db.commit()</code>. What happens?",o:["The student is saved","Nothing is saved in PostgreSQL","The server crashes","A 422 is returned"],a:1,w:"add() only puts it in the session. commit() sends the INSERT to PostgreSQL."},
+    {q:"Where should <code>DATABASE_URL</code> live?",o:["Written in main.py","In a .env file listed in .gitignore","In students.json","In every request's URL"],a:1,w:"Keeping it out of the code keeps your password off GitHub."},
+    {q:"Why add <code>from_attributes=True</code>?",o:["To speed up PostgreSQL","So Pydantic can read data from a database object","To allow extra fields","To make all fields optional"],a:1,w:"Without it, response_model can't read a SQLAlchemy object."}
+  ]},
+{ id:8, stage:"s4", title:"Dockerization", badge:"Docker Captain", abbr:"DK",
+  goal:"Pack the API and its PostgreSQL database into containers that run the same on every computer.",
+  covers:["The \"works on my machine\" problem","Image vs container","Writing the Dockerfile line by line","<code>.dockerignore</code>","<code>docker build</code> and <code>--host 0.0.0.0</code>","Two containers: the API and PostgreSQL","<code>docker-compose.yml</code> and <code>docker compose up</code>","Volumes keep the data between restarts","Pushing to Docker Hub (optional)"],
+  concept:`<p>An <b>image</b> is a packed lunchbox: your code, Python and all libraries, sealed together. A <b>container</b> is that lunchbox opened and running. One image can start many containers, and it runs the same everywhere.</p>
+<p>Our app needs two things running: the API and PostgreSQL. <b>docker-compose</b> starts both with one command. Inside compose, the API finds the database by its service name (<code>db</code>), so <code>DATABASE_URL</code> uses <code>db</code> instead of <code>localhost</code>. A <b>volume</b> keeps the database files safe when containers restart.</p>`,
+  checks:["Docker Desktop is running","Image built with <code>docker build</code>","<code>docker compose up</code> starts the API and PostgreSQL","<code>localhost:8000/docs</code> opens and the students are there","Data survives <code>docker compose down</code> and <code>up</code> again","(Optional) Image pushed to Docker Hub"],
+  quiz:[
+    {q:"Image vs container:",o:["Same thing","A container is a running instance of an image","An image is a running container","Containers store images"],a:1,w:"Image = recipe, container = the dish being served."},
+    {q:"Why <code>--host 0.0.0.0</code> inside Docker?",o:["It's faster","So the app can be reached from outside the container","It's required by Python","It enables HTTPS"],a:1,w:"127.0.0.1 would only be reachable inside the container."},
+    {q:"What does <code>-p 8000:8000</code> do?",o:["Sets the password","Maps your computer's port to the container's port","Runs 8000 copies","Limits memory"],a:1,w:"Left side = your computer, right side = the container."},
+    {q:"Inside docker-compose, what host goes in <code>DATABASE_URL</code>?",o:["localhost","The database service name, e.g. db","127.0.0.1","0.0.0.0"],a:1,w:"Containers find each other by service name. localhost would point at the API container itself."}
+  ]},
+{ id:9, stage:"s4", title:"Deployment", badge:"Shipped It", abbr:"GO",
+  goal:"Put the API and its database on the internet with a public link anyone can open.",
+  covers:["Pushing code to GitHub","Creating a PostgreSQL database on Render","Creating a web service on Render","<code>DATABASE_URL</code> as an environment variable","Deploying with the Dockerfile","Reading build logs","Testing the live <code>/docs</code>","What free hosting can't do"],
+  concept:`<p>Deployment = running your container on someone else's computer that is always online. Render can build straight from your GitHub repo using your Dockerfile, and it can also host the PostgreSQL database.</p>
+<p><b>Steps on Render:</b> New → PostgreSQL → create the database and copy its <b>Internal Database URL</b>. Then New → Web Service → connect your GitHub repo → it detects the Dockerfile → add an environment variable <code>DATABASE_URL</code> with that URL → Deploy. Run the seed once, then open <code>https://your-app.onrender.com/docs</code>.</p>
+<p>Your code doesn't change at all: it reads <code>DATABASE_URL</code> exactly like it did from <code>.env</code>. Be honest with viewers: a free app may sleep when unused, and free database plans have limits.</p>`,
+  checks:["Code pushed to GitHub (without <code>.env</code>)","Render PostgreSQL database created","Web service created with <code>DATABASE_URL</code> set","Build logs show success","Live <code>/docs</code> works from your phone"],
+  quiz:[
+    {q:"How does the deployed app know where the database is?",o:["We write it in main.py","DATABASE_URL is set as an environment variable on Render","Render guesses it","It reads students.json"],a:1,w:"Same code, different value: locally from .env, on Render from its settings."},
+    {q:"Why must <code>.env</code> stay off GitHub?",o:["It is too big","It holds your database password","Render can't read it","Python needs it to be secret"],a:1,w:"Anyone who sees the repo would get your password. List .env in .gitignore."}
+  ]},
+{ id:10, stage:"s4", title:"Recap and next steps", badge:"FastAPI Graduate", abbr:"GR",
+  goal:"Look back at everything you built, and pick what to learn next.",
+  covers:["Recap: 8 endpoints, Pydantic, PostgreSQL, Docker, live URL","Next: JWT authentication","Next: database migrations with Alembic","Next: async database access","Next: testing with pytest"],
+  concept:`<p>You went from an empty folder to a validated, database-backed, containerised API with a public link. That is the same path real backend projects follow.</p>
+<p>Coming next: <b>Part 2, securing this API with JWT login</b>, built on this exact project.</p>`,
+  checks:["Finished the full course","Shared your live link in the comments"],
+  quiz:[
+    {q:"Which tool checked every piece of data in this course?",o:["Uvicorn","Docker","Pydantic","PostgreSQL"],a:2,w:"FastAPI + Pydantic is the core combination."}
+  ]}
+];
+
+const ENDPOINTS = [
+  {m:"GET",p:"/",ch:1},{m:"GET",p:"/about",ch:2},{m:"GET",p:"/students",ch:2},{m:"GET",p:"/students/{student_id}",ch:3},
+  {m:"GET",p:"/sort",ch:4},{m:"POST",p:"/students",ch:6},{m:"PUT",p:"/students/{student_id}",ch:6},{m:"DELETE",p:"/students/{student_id}",ch:6}
+];
+
+const MISSIONS = [
+  {id:"m200",t:"Get one student (200)"},{id:"m404",t:"Trigger a 404"},{id:"mfilter",t:"Filter by course"},{id:"msort",t:"Sort by marks"},
+  {id:"mpost",t:"Create a student (201)"},{id:"m422",t:"Trigger a 422"},{id:"mput",t:"Update a student"},{id:"mdel",t:"Delete a student"}
+];
+
+const LEVELS = ["Hello World","Path Finder","Query Ninja","Pydantic Pro","CRUD Builder","DB Wizard","Docker Captain","FastAPI Graduate"];
+const XP = {check:10, quiz:20, chapter:50, mission:15};
+
+/* ------------------------------------------------------------------ state */
+const KEY = "fastapi-quest-v1";
+let S = {checks:{}, quiz:{}, done:{}, missions:{}};
+try{ const raw = localStorage.getItem(KEY); if(raw) S = Object.assign(S, JSON.parse(raw)); }catch(e){}
+function save(){ try{ localStorage.setItem(KEY, JSON.stringify(S)); }catch(e){} }
+
+const MAX = CH.reduce((t,c)=>t + c.checks.length*XP.check + c.quiz.length*XP.quiz + XP.chapter, 0) + MISSIONS.length*XP.mission;
+function xp(){
+  let t = Object.values(S.checks).filter(Boolean).length*XP.check;
+  t += Object.values(S.quiz).filter(q=>q && q.first).length*XP.quiz;
+  t += Object.values(S.done).filter(Boolean).length*XP.chapter;
+  t += Object.values(S.missions).filter(Boolean).length*XP.mission;
+  return t;
+}
+function level(x){ const step = MAX/ (LEVELS.length); return Math.min(LEVELS.length-1, Math.floor(x/step)); }
+
+/* ------------------------------------------------------------------ helpers */
+const $ = s => document.querySelector(s);
+const esc = s => s.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
+function hl(code, lang){
+  if(lang==="text") return esc(code);
+  const kw = "def|class|return|if|elif|else|for|in|not|import|from|with|as|try|except|finally|yield|raise|True|False|None|and|or|lambda";
+  const dockerKw = "FROM|WORKDIR|COPY|RUN|EXPOSE|CMD";
+  const parts = [
+    "(#[^\\n]*)",
+    "(\"(?:[^\"\\\\\\n]|\\\\.)*\"|'(?:[^'\\\\\\n]|\\\\.)*')",
+    lang==="python" ? "(@\\w+)" : "(@@never@@)",
+    lang==="python" ? "\\b("+kw+")\\b" : lang==="docker" ? "^("+dockerKw+")\\b" : "(@@never@@)",
+    "\\b(\\d+)\\b"
+  ];
+  const re = new RegExp(parts.join("|"), "gm");
+  let out = "", last = 0, m;
+  const isJson = lang==="json";
+  while((m = re.exec(code))){
+    if(m[1] && isJson){ continue; }
+    out += esc(code.slice(last, m.index));
+    const cls = m[1]?"c":m[2]?"s":m[3]?"d":m[4]?"k":"nu";
+    out += '<span class="'+cls+'">'+esc(m[0])+'</span>';
+    last = re.lastIndex;
+  }
+  return out + esc(code.slice(last));
+}
+let toastT;
+function toast(msg){ const t=$("#toast"); t.textContent=msg; t.classList.add("on"); clearTimeout(toastT); toastT=setTimeout(()=>t.classList.remove("on"),2400); }
+
+/* ------------------------------------------------------------------ header + rail */
+function renderHeader(){
+  const x = xp(), l = level(x);
+  $("#xpNow").textContent = x; $("#xpMax").textContent = MAX;
+  $("#xpBar").style.width = Math.min(100, x/MAX*100) + "%";
+  $("#lvlNum").textContent = l+1; $("#lvlName").textContent = LEVELS[l];
+}
+let view = "home";
+function renderRail(){
+  let h = `<div class="sec">Start</div><button class="nav wide" data-go="home" aria-current="${view==='home'}"><span class="n">★</span><span class="t">Roadmap</span></button>`;
+  let stage = "";
+  CH.forEach(c=>{
+    if(c.stage!==stage){ stage=c.stage; h += `<div class="sec">${STAGES[stage].name}</div>`; }
+    h += `<button class="nav ${S.done[c.id]?'done':''}" data-go="ch${c.id}" aria-current="${view==='ch'+c.id}" title="${c.title}"><span class="n">${S.done[c.id]?'✓':c.id}</span><span class="t">${c.title}</span></button>`;
+  });
+  h += `<div class="sec">Practice</div><button class="nav wide" data-go="play" aria-current="${view==='play'}"><span class="n">▶</span><span class="t">API Playground</span></button>`;
+  $("#rail").innerHTML = h;
+}
+
+/* ------------------------------------------------------------------ home */
+function renderHome(){
+  const segs = CH.map(c=>`<button class="seg ${c.stage} ${S.done[c.id]?'done':''}" style="flex:1" data-go="ch${c.id}" title="${c.id}. ${c.title}">${c.id}</button>`).join("");
+  const doneCount = Object.values(S.done).filter(Boolean).length;
+  const eps = ENDPOINTS.map(e=>{ const open = S.done[e.ch]; return `<div class="ep ${open?'':'locked'}"><span class="mth ${e.m}">${e.m}</span><span class="pth">${esc(e.p)}</span><span class="lock">${open?'unlocked':'Ch '+e.ch}</span></div>`; }).join("");
+  const badges = CH.map(c=>`<div class="badge ${S.done[c.id]?'got':''}"><div class="b">${c.abbr}</div>${c.badge}</div>`).join("");
+  $("#main").innerHTML = `<div class="stack">
+    <section class="panel hero stack">
+      <span class="eyebrow">Your course notebook</span>
+      <h2>Build and ship a Student Management API</h2>
+      <p>Follow along chapter by chapter. Tick each checkpoint, answer the quiz, and earn XP. Finish a chapter to unlock its endpoints and win its badge. ${doneCount} of ${CH.length} chapters done.</p>
+      <div><button class="btn primary" data-go="ch${(CH.find(c=>!S.done[c.id])||CH[0]).id}">${doneCount? 'Continue' : 'Start Chapter 1'}</button></div>
+    </section>
+    <section class="panel">
+      <h3>Course map</h3>
+      <div class="timeline">${segs}</div>
+      <div class="legend">${Object.values(STAGES).map(s=>`<span><i style="background:${s.color}"></i>${s.name}</span>`).join("")}</div>
+      <p style="color:var(--muted);font-size:.88rem;margin:10px 0 0">${CH.length} chapters in 4 stages. Tap a segment to jump to it.</p>
+    </section>
+    <div class="grid2">
+      <section class="panel"><h3>Project endpoints</h3>${eps}</section>
+      <section class="panel"><h3>Badges</h3><div class="badges">${badges}</div></section>
+    </div>
+    <section class="panel">
+      <div class="confirm" id="resetRow"><button class="btn small" id="resetBtn">Reset my progress</button></div>
+    </section>
+  </div>`;
+}
+
+/* ------------------------------------------------------------------ chapter */
+function chapterComplete(c){
+  return c.checks.every((_,i)=>S.checks[c.id+"-"+i]) && c.quiz.every((_,i)=>S.quiz[c.id+"-"+i] && S.quiz[c.id+"-"+i].solved);
+}
+function renderChapter(id){
+  const c = CH.find(x=>x.id===id);
+  const idx = CH.indexOf(c);
+  const checks = c.checks.map((t,i)=>{ const k=c.id+"-"+i; return `<li><label><input type="checkbox" id="ck${k}" data-check="${k}" ${S.checks[k]?'checked':''}><span>${t}</span><span class="pts">+${XP.check} XP</span></label></li>`; }).join("");
+  const quiz = c.quiz.map((q,i)=>{
+    const k=c.id+"-"+i, st=S.quiz[k];
+    const opts = q.o.map((o,j)=>{ let cls=""; if(st && st.solved && j===q.a) cls="right"; return `<button class="opt ${cls}" data-q="${k}" data-o="${j}" ${st&&st.solved?'disabled':''}>${o}</button>`; }).join("");
+    return `<div class="q" id="q${k}"><p class="qt">${i+1}. ${q.q}</p><div class="opts">${opts}</div><p class="why" ${st&&st.solved?'':'hidden'}><b>Why:</b> ${q.w}</p></div>`;
+  }).join("");
+  const eps = ENDPOINTS.filter(e=>e.ch===c.id);
+  const complete = S.done[c.id];
+  $("#main").innerHTML = `<div class="stack">
+    <section class="panel chhead">
+      <span class="eyebrow">Chapter ${c.id} of ${CH.length} · ${STAGES[c.stage].name}</span>
+      <h2>${c.title}</h2>
+      <div class="meta"><span class="chip xp">Badge: ${c.badge}</span>${complete?'<span class="chip ok">Completed</span>':''}</div>
+      <p class="goal" style="margin:0">${c.goal}</p>
+    </section>
+    ${complete?`<div class="complete"><div class="medal">${c.abbr}</div><div><b>Chapter complete.</b> You earned the “${c.badge}” badge${eps.length?` and unlocked ${eps.map(e=>e.m+' '+esc(e.p)).join(', ')}`:''}.</div></div>`:''}
+    <section class="panel"><h3>What this chapter covers</h3><ul class="covers">${c.covers.map(x=>`<li><span>${x}</span></li>`).join("")}</ul></section>
+    <section class="panel prose"><h3>The idea in plain words</h3>${c.concept}</section>
+    ${c.flow?FLOW_HTML:""}
+    <section class="panel"><h3>Checkpoint</h3><ul class="checks">${checks}</ul></section>
+    <section class="panel stack"><h3 style="margin:0">Quick quiz <span class="chip xp" style="vertical-align:middle">+${XP.quiz} XP for a first-try answer</span></h3>${quiz}</section>
+    <div class="navrow">
+      ${idx>0?`<button class="btn" data-go="ch${CH[idx-1].id}">← ${CH[idx-1].title}</button>`:`<button class="btn" data-go="home">← Roadmap</button>`}
+      ${idx<CH.length-1?`<button class="btn primary" data-go="ch${CH[idx+1].id}">${CH[idx+1].title} →</button>`:`<button class="btn primary" data-go="play">Open the Playground →</button>`}
+    </div>
+  </div>`;
+  if(c.flow) fwInit();
+}
+function checkComplete(id){
+  const c = CH.find(x=>x.id===id);
+  if(!S.done[id] && chapterComplete(c)){
+    S.done[id]=true; save(); toast(`Chapter ${id} complete! +${XP.chapter} XP · Badge: ${c.badge}`);
+    renderChapter(id); renderRail(); renderHeader();
+  }
+}
+
+/* ------------------------------------------------------------------ chapter 7: FastAPI <-> PostgreSQL diagram */
+const FW_ALL=[0,1,2,3,4];
+const ALL=FW_ALL;
+const FW={
+build:[
+{ph:"Setup",t:"Install PostgreSQL and create the database",b:[4],n:[4],w:[],r:null,
+ sy:"<strong>Library:</strong> first we need the library building. PostgreSQL is a separate program on your computer, not part of Python.",
+ ex:"Install PostgreSQL, then create an empty database for the project.",
+ cd:`createdb studentdb`,cl:"Check it",ck:`psql studentdb
+\\l        -- studentdb appears in the list`},
+{ph:"Setup",t:"Store the address in .env",b:[4],n:[4],w:[],r:null,
+ sy:"<strong>Library:</strong> write down the library's address and your membership key, and keep them private.",
+ ex:"DATABASE_URL holds the user, password, host, port and database name. It lives in .env, and .env is listed in .gitignore.",
+ cd:`<span class="c"># .env</span>
+DATABASE_URL=postgresql://postgres:yourpassword@localhost:5432/studentdb`,
+ cl:"Check it",ck:`.gitignore contains .env
+-> the password never reaches GitHub`},
+{ph:"Connect",t:"Build the engine",b:[3,4],n:[3,4],w:[[3,"down","connect"]],r:null,
+ sy:"<strong>Library:</strong> build one road from your app to the library. It is built once and reused by every request.",
+ ex:"load_dotenv() reads .env, and create_engine() uses the address to connect. psycopg2 is the driver that speaks PostgreSQL's language.",
+ cd:`load_dotenv()
+DATABASE_URL = os.getenv(<span class="k">"DATABASE_URL"</span>)
+engine = create_engine(DATABASE_URL)`,
+ cl:"Check it",ck:`python playground.py
+2. Connected to: PostgreSQL 16.x`},
+{ph:"Connect",t:"Create the session factory",b:[2,3,4],n:[2,3],w:[[2,"down","uses"]],r:null,
+ sy:"<strong>Library:</strong> set up the desk that hands out visit passes. Every request will get its own visit.",
+ ex:"sessionmaker makes a SessionLocal class. Calling SessionLocal() later opens one session that travels over the engine.",
+ cd:`SessionLocal = sessionmaker(bind=engine, autoflush=False)`,
+ cl:"Check it",ck:`Nothing runs yet.
+A session is opened later, once per request.`},
+{ph:"Describe the data",t:"Describe the table and create it",b:[2,3,4],n:[3,4],w:[[3,"down","CREATE TABLE"]],r:"students · 0 rows",
+ sy:"<strong>Library:</strong> design the shelf. Every book must have these exact slots.",
+ ex:"StudentDB describes how a student is stored. create_all() turns the class into a real table if it doesn't exist yet.",
+ cd:`<span class="k">class</span> Base(DeclarativeBase): <span class="k">pass</span>
+
+<span class="k">class</span> StudentDB(Base):
+    __tablename__ = <span class="k">"students"</span>
+    id    = Column(String, primary_key=True)
+    name  = Column(String(50), nullable=False)
+    email = Column(String, unique=True)
+    <span class="c"># age, course, marks ...</span>
+
+Base.metadata.create_all(bind=engine)`,
+ cl:"Check it",ck:`psql studentdb -c "\\d students"`},
+{ph:"Fill the data",t:"Move students.json into the database",b:[2,3,4],n:[2,3,4],w:[[2,"down","add × 5"],[3,"down","INSERT"]],r:"students · 5 rows",
+ sy:"<strong>Library:</strong> carry the old notebook's books to the new shelf, once.",
+ ex:"seed.py reads students.json, adds each student to a session and commits. After this, the API never opens the JSON file again.",
+ cd:`db = SessionLocal()
+<span class="k">for</span> student_id, info <span class="k">in</span> data.items():
+    db.add(StudentDB(id=student_id, **info))
+db.commit()`,
+ cl:"Check it",ck:`python seed.py
+psql studentdb -c "SELECT * FROM students;"   -- 5 rows`},
+{ph:"Plug into FastAPI",t:"get_db() opens one visit per request",b:[2,3,4],n:[2],w:[],r:"students · 5 rows",
+ sy:"<strong>Library:</strong> the receptionist opens your visit and guarantees you sign out, even if something goes wrong.",
+ ex:"yield hands the session to the endpoint. The finally block closes it after the response is sent.",
+ cd:`<span class="k">def</span> get_db():
+    db = SessionLocal()
+    <span class="k">try</span>:
+        <span class="k">yield</span> db
+    <span class="k">finally</span>:
+        db.close()`,
+ cl:"Check it",ck:`Add print("open") and print("close")
+-> watch them appear around every request`},
+{ph:"Plug into FastAPI",t:"Rewrite the endpoints",b:ALL,n:[1,2],w:[[1,"down","Depends(get_db)"]],r:"students · 5 rows",
+ sy:"<strong>Library:</strong> every endpoint now asks the receptionist for a visit instead of opening the notebook.",
+ ex:"load_data() and save_data() disappear. The session reads and writes the database instead.",
+ cd:`<span class="c"># before (JSON)</span>                <span class="c"># after (PostgreSQL)</span>
+data = load_data()            db: Session = Depends(get_db)
+data[student_id]              db.get(StudentDB, student_id)
+data[id] = ...; save_data()   db.add(...); db.commit()
+del data[id]; save_data()     db.delete(student); db.commit()`,
+ cl:"Check it",ck:`uvicorn main:app --reload
+-> open http://127.0.0.1:8000/docs`},
+{ph:"Checkpoint",t:"The data survives a restart",b:ALL,n:ALL,w:[[0,"down","GET /students"],[1,"down",""],[2,"down",""],[3,"down","SELECT"]],r:"students · 5 rows",
+ sy:"<strong>Library:</strong> close the library for the night and open it again. Every book is still on the shelf.",
+ ex:"Create a student in /docs, stop the server, start it again, and the student is still there. The data lives in PostgreSQL now.",
+ cd:`<span class="c"># stop the server: Ctrl + C</span>
+uvicorn main:app --reload`,
+ cl:"Check it",ck:`GET /students -> your new student is still listed`}
+],
+req:[
+{ph:"Request arrives",t:"Swagger sends a new student",n:[0,1],w:[[0,"down","POST /students"]],r:"students · 5 rows",
+ sy:"<strong>Library:</strong> a visitor walks in carrying a new book.",
+ ex:"The client sends JSON in the request body. FastAPI routes it to create_student().",
+ cd:`{ <span class="k">"id"</span>: "S006", <span class="k">"name"</span>: "riya sen", <span class="k">"age"</span>: 20,
+  <span class="k">"course"</span>: "Python", <span class="k">"marks"</span>: 88,
+  <span class="k">"email"</span>: "riya@example.com" }`,cl:"What PostgreSQL receives",sql:null},
+{ph:"Request arrives",t:"Pydantic checks the data",n:[1],w:[],r:"students · 5 rows",
+ sy:"<strong>Library:</strong> the guard at the door checks the book. Bad data gets a 422 here and never reaches the database.",
+ ex:"StudentCreate validates every field, and the name validator turns \"riya sen\" into \"Riya Sen\".",
+ cd:`<span class="k">def</span> create_student(student: StudentCreate,
+                   db: Session = Depends(get_db)):`,cl:"What PostgreSQL receives",sql:null},
+{ph:"Talking to the database",t:"get_db() opens a visit",n:[1,2],w:[[1,"down","Depends(get_db)"]],r:"students · 5 rows",
+ sy:"<strong>Library:</strong> the receptionist opens a visit for this request.",
+ ex:"Depends(get_db) runs before the endpoint and hands it a fresh Session.",
+ cd:`db = SessionLocal()
+<span class="k">yield</span> db      <span class="c"># the endpoint runs now</span>`,cl:"What PostgreSQL receives",sql:null},
+{ph:"Talking to the database",t:"Is this ID already taken?",n:[2,3,4],w:[[2,"down","SELECT"],[3,"down","SELECT"]],r:"students · 5 rows",
+ sy:"<strong>Library:</strong> check the shelf for a book with the same number.",
+ ex:"db.get() looks up one row by primary key. If it exists, we stop with a 400.",
+ cd:`<span class="k">if</span> db.get(StudentDB, student.id):
+    <span class="k">raise</span> HTTPException(400, <span class="k">"already exists"</span>)`,
+ cl:"What PostgreSQL receives",sql:`SELECT * FROM students WHERE id = 'S006';`},
+{ph:"Talking to the database",t:"db.add() puts it on the counter",n:[2],w:[],r:"students · 5 rows",
+ sy:"<strong>Library:</strong> the book is on the counter. It is <strong>not on the shelf yet</strong>.",
+ ex:"The student is added to the session only. PostgreSQL hasn't been told anything.",
+ cd:`new_student = StudentDB(**student.model_dump())
+db.add(new_student)`,cl:"What PostgreSQL receives",sql:null},
+{ph:"Talking to the database",t:"db.commit() saves it for real",n:[2,3,4],w:[[2,"down","INSERT"],[3,"down","INSERT"]],r:"students · 6 rows",
+ sy:"<strong>Library:</strong> the librarian shelves the book. <strong>Now</strong> it is saved.",
+ ex:"commit() sends the INSERT through the engine. A duplicate email breaks the unique rule, so we rollback() and return a 400.",
+ cd:`<span class="k">try</span>:
+    db.commit()
+<span class="k">except</span> IntegrityError:
+    db.rollback()
+    <span class="k">raise</span> HTTPException(400, <span class="k">"email already used"</span>)`,
+ cl:"What PostgreSQL receives",sql:`INSERT INTO students (id, name, age, course, marks, email)
+VALUES ('S006', 'Riya Sen', 20, 'Python', 88, 'riya@example.com');`},
+{ph:"Coming back",t:"db.refresh() reads the saved row",n:[2,3,4],w:[[2,"up","row"],[3,"up","row"]],r:"students · 6 rows",
+ sy:"<strong>Library:</strong> look at the shelf again to see exactly what was stored.",
+ ex:"refresh() reloads the row so we return what PostgreSQL actually saved.",
+ cd:`db.refresh(new_student)
+<span class="k">return</span> new_student`,cl:"What PostgreSQL receives",sql:`SELECT * FROM students WHERE id = 'S006';`},
+{ph:"Coming back",t:"Pydantic shapes the response",n:[0,1],w:[[0,"up","201 + JSON"],[1,"up","StudentDB"]],r:"students · 6 rows",
+ sy:"<strong>Library:</strong> the guard checks what goes out too, and adds the grade.",
+ ex:"response_model=StudentResponse reads the StudentDB object (from_attributes=True) and adds the computed grade.",
+ cd:`<span class="c"># client receives  201 Created</span>
+{ <span class="k">"id"</span>: "S006", <span class="k">"name"</span>: "Riya Sen", ..., <span class="k">"grade"</span>: "A" }`,cl:"What PostgreSQL receives",sql:null},
+{ph:"After the response",t:"The visit closes",n:[2],w:[],r:"students · 6 rows",
+ sy:"<strong>Library:</strong> you sign out. The road stays open for the next visitor.",
+ ex:"finally: db.close() always runs. The engine is reused by the next request.",
+ cd:`<span class="k">finally</span>:
+    db.close()`,cl:"What PostgreSQL receives",sql:null}
+]};
+
+const FLOW_HTML = `<section class="panel stack" id="fwRoot">
+  <div><h3 style="margin-bottom:6px">How FastAPI connects to PostgreSQL</h3>
+  <p style="margin:0;color:var(--muted);max-width:68ch">First build the connection piece by piece, then follow one request through it. Use Next, the dots, or the ← → keys.</p></div>
+  <div class="fw-tabs"><button class="btn small" data-fwm="build" aria-pressed="true">How we build it</button><button class="btn small" data-fwm="req" aria-pressed="false">One request, step by step</button></div>
+  <div class="fw">
+    <div aria-label="Connection path">
+      <div class="fw-nd cl" id="fwd0"><span class="fw-ic">/docs</span><span><b>Browser / Swagger UI</b><small>The client sends requests</small></span></div>
+      <div class="fw-wr" id="fww0"><span class="fw-wl"></span></div>
+      <div class="fw-grp"><span class="fw-gt">Your Python app · main.py</span>
+        <div class="fw-nd" id="fwd1"><span class="fw-ic">API</span><span><b>FastAPI endpoints</b><small>Pydantic checks data in and out</small></span></div>
+        <div class="fw-wr" id="fww1"><span class="fw-wl"></span></div>
+        <div class="fw-nd" id="fwd2"><span class="fw-ic">db</span><span><b>Session</b><small>One visit per request, from get_db()</small></span></div>
+        <div class="fw-wr" id="fww2"><span class="fw-wl"></span></div>
+        <div class="fw-nd" id="fwd3"><span class="fw-ic">⇄</span><span><b>Engine</b><small>The road, built once from DATABASE_URL</small></span></div>
+      </div>
+      <div class="fw-wr" id="fww3"><span class="fw-wl"></span></div>
+      <div class="fw-grp pg"><span class="fw-gt">Separate program · PostgreSQL</span>
+        <div class="fw-nd pg" id="fwd4"><span class="fw-ic">PG</span><span><b>studentdb</b><small>The database server</small><span class="fw-rows" id="fwrows" hidden></span></span></div>
+      </div>
+    </div>
+    <div class="fw-pn" aria-live="polite">
+      <div class="fw-pm"><span id="fwph"></span><span id="fwct"></span></div>
+      <h4 id="fwti"></h4>
+      <p class="fw-sy" id="fwsy"></p>
+      <p class="fw-ex" id="fwex"></p>
+      <div><p class="fw-lb">The code</p><pre id="fwcd"></pre></div>
+      <div><p class="fw-lb" id="fwl2"></p><div id="fwbx"></div></div>
+      <div class="fw-ctl"><button class="btn small" id="fwpv">Back</button><button class="btn small primary" id="fwnx">Next</button><div class="fw-dots" id="fwdt" aria-label="Jump to step"></div></div>
+    </div>
+  </div>
+  <div class="fw-rule"><b>Every endpoint follows the same pattern:</b><span><i>1.</i> get a visit (db)</span><span><i>2.</i> find or change data</span><span><i>3.</i> db.commit() if something changed</span></div>
+</section>`;
+let fwM="build", fwI=0;
+function fwDraw(){
+  const g=id=>document.getElementById(id); if(!g("fwRoot")) return;
+  const L=FW[fwM], s=L[fwI], built=s.b||FW_ALL;
+  g("fwph").textContent=s.ph; g("fwct").textContent=`Step ${fwI+1} of ${L.length}`;
+  g("fwti").textContent=s.t; g("fwsy").innerHTML=s.sy; g("fwex").textContent=s.ex; g("fwcd").innerHTML=s.cd; g("fwl2").textContent=s.cl;
+  const txt = fwM==="build" ? s.ck : s.sql;
+  g("fwbx").innerHTML = txt ? `<pre class="${fwM==="req"?"sql":""}"></pre>` : `<p class="fw-ns">Nothing. PostgreSQL is not contacted in this step.</p>`;
+  if(txt) g("fwbx").firstChild.textContent = txt;
+  for(let k=0;k<5;k++){ const el=g("fwd"+k); el.classList.toggle("on",s.n.includes(k)); el.classList.toggle("ghost",!built.includes(k)); }
+  for(let k=0;k<4;k++){ const f=s.w.find(x=>x[0]===k), el=g("fww"+k); el.classList.toggle("on",!!f); el.classList.toggle("up",!!f&&f[1]==="up");
+    el.firstChild.textContent = f&&f[2] ? (f[1]==="up"?"↑ ":"↓ ")+f[2] : ""; }
+  const r=g("fwrows"); r.hidden=!s.r; r.textContent=s.r||"";
+  g("fwdt").innerHTML = L.map((_,k)=>`<button aria-label="Step ${k+1}" data-fwk="${k}" class="${k===fwI?'on':k<fwI?'past':''}"></button>`).join("");
+  g("fwpv").disabled = fwI===0; g("fwnx").textContent = fwI===L.length-1 ? "Start over" : "Next";
+  document.querySelectorAll("[data-fwm]").forEach(b=>b.setAttribute("aria-pressed", b.dataset.fwm===fwM));
+}
+function fwInit(){ fwDraw(); }
+document.addEventListener("click", e=>{
+  if(!document.getElementById("fwRoot")) return;
+  const m=e.target.closest("[data-fwm]"); if(m){ fwM=m.dataset.fwm; fwI=0; fwDraw(); return; }
+  const d=e.target.closest("[data-fwk]"); if(d){ fwI=+d.dataset.fwk; fwDraw(); return; }
+  if(e.target.id==="fwnx"){ fwI = fwI===FW[fwM].length-1 ? 0 : fwI+1; fwDraw(); return; }
+  if(e.target.id==="fwpv"){ if(fwI>0){ fwI--; fwDraw(); } }
+});
+document.addEventListener("keydown", e=>{
+  const root=document.getElementById("fwRoot"); if(!root) return;
+  if(e.target.closest && e.target.closest("input,textarea,select")) return;
+  const r=root.getBoundingClientRect(); if(r.bottom<0||r.top>innerHeight) return;
+  if(e.key==="ArrowRight"){ fwI=Math.min(FW[fwM].length-1,fwI+1); fwDraw(); }
+  if(e.key==="ArrowLeft"){ fwI=Math.max(0,fwI-1); fwDraw(); }
+});
+
+/* ------------------------------------------------------------------ playground (simulated API) */
+let DB = JSON.parse(DATASET);
+const PRESETS = [
+  {l:"GET one student", m:"GET", p:"/students/S001"},
+  {l:"Missing student", m:"GET", p:"/students/S999"},
+  {l:"Filter: Python", m:"GET", p:"/students?course=Python"},
+  {l:"Sort by marks", m:"GET", p:"/sort?sort_by=marks&order=desc"},
+  {l:"Create student", m:"POST", p:"/students", b:{id:"S006",name:"ananya rao",age:20,email:"ananya@example.com",course:"Python",marks:88}},
+  {l:"Bad data (422)", m:"POST", p:"/students", b:{id:"S007",name:"Test",age:-5,email:"not-an-email",course:"Python",marks:105}},
+  {l:"Update marks", m:"PUT", p:"/students/S003", b:{marks:79}},
+  {l:"Delete student", m:"DELETE", p:"/students/S005"}
+];
+function err(type, loc, msg, input){ return {type, loc, msg, input}; }
+function validate(obj, partial){
+  const errs=[], out={};
+  const spec = {
+    id:{t:"str"}, name:{t:"str",max:50}, age:{t:"int",gt:0,lt:100}, email:{t:"email"}, course:{t:"str"}, marks:{t:"int",ge:0,le:100}
+  };
+  const fields = partial ? ["name","age","email","course","marks"] : Object.keys(spec);
+  fields.forEach(f=>{
+    const s = spec[f]; let v = obj[f];
+    if(v===undefined){ if(!partial) errs.push(err("missing",["body",f],"Field required",obj)); return; }
+    if(v===null && partial){ out[f]=null; return; }
+    if(s.t==="int"){
+      if(typeof v==="string" && /^-?\d+$/.test(v.trim())) v=parseInt(v,10);
+      if(typeof v!=="number" || !Number.isInteger(v)){ errs.push(err("int_parsing",["body",f],"Input should be a valid integer",v)); return; }
+      if(s.gt!==undefined && !(v>s.gt)) errs.push(err("greater_than",["body",f],`Input should be greater than ${s.gt}`,v));
+      else if(s.lt!==undefined && !(v<s.lt)) errs.push(err("less_than",["body",f],`Input should be less than ${s.lt}`,v));
+      else if(s.ge!==undefined && !(v>=s.ge)) errs.push(err("greater_than_equal",["body",f],`Input should be greater than or equal to ${s.ge}`,v));
+      else if(s.le!==undefined && !(v<=s.le)) errs.push(err("less_than_equal",["body",f],`Input should be less than or equal to ${s.le}`,v));
+      else out[f]=v;
+    } else {
+      if(typeof v!=="string"){ errs.push(err("string_type",["body",f],"Input should be a valid string",v)); return; }
+      if(s.t==="email" && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(v)){ errs.push(err("value_error",["body",f],"value is not a valid email address",v)); return; }
+      if(s.max && v.length>s.max){ errs.push(err("string_too_long",["body",f],`String should have at most ${s.max} characters`,v)); return; }
+      out[f] = f==="name" ? v.trim().replace(/\s+/g," ").toLowerCase().replace(/\b\w/g,ch=>ch.toUpperCase()) : v;
+    }
+  });
+  return {errs,out};
+}
+function mission(id){ if(!S.missions[id]){ S.missions[id]=true; save(); toast(`Mission complete! +${XP.mission} XP`); renderHeader(); renderMissions(); } }
+function handle(method, path, bodyText){
+  let u; try{ u = new URL(path.startsWith("/")?path:"/"+path, "http://127.0.0.1:8000"); }catch(e){ return [404,{detail:"Not Found"}]; }
+  const p = u.pathname.replace(/\/+$/,"") || "/", q = u.searchParams;
+  let body = null;
+  if(method==="POST"||method==="PUT"){
+    try{ body = JSON.parse(bodyText||""); }catch(e){ mission("m422"); return [422,{detail:[{type:"json_invalid",loc:["body",0],msg:"JSON decode error"}]}]; }
+    if(typeof body!=="object"||body===null||Array.isArray(body)){ mission("m422"); return [422,{detail:[{type:"model_attributes_type",loc:["body"],msg:"Input should be a valid dictionary or object"}]}]; }
+  }
+  if(p==="/" && method==="GET") return [200,{message:"Welcome to the Student Management API"}];
+  if(p==="/about" && method==="GET") return [200,{message:"A simple API to manage student records"}];
+  if(p==="/sort" && method==="GET"){
+    const sb=q.get("sort_by"), ord=q.get("order")||"asc";
+    if(sb===null){ mission("m422"); return [422,{detail:[{type:"missing",loc:["query","sort_by"],msg:"Field required",input:null}]}]; }
+    if(!["marks","age"].includes(sb)) return [400,{detail:"sort_by must be 'marks' or 'age'"}];
+    if(!["asc","desc"].includes(ord)) return [400,{detail:"order must be 'asc' or 'desc'"}];
+    if(sb==="marks") mission("msort");
+    const arr = Object.values(DB).sort((a,b)=>a[sb]-b[sb]); if(ord==="desc") arr.reverse(); return [200,arr];
+  }
+  if(p==="/students"){
+    if(method==="GET"){
+      const c=q.get("course");
+      if(c){ const r={}; Object.entries(DB).forEach(([k,v])=>{ if(v.course.toLowerCase()===c.toLowerCase()) r[k]=v; }); mission("mfilter"); return [200,r]; }
+      return [200,DB];
+    }
+    if(method==="POST"){
+      const {errs,out}=validate(body,false);
+      if(errs.length){ mission("m422"); return [422,{detail:errs}]; }
+      if(DB[out.id]) return [400,{detail:"Student already exists"}];
+      const {id,...rest}=out; DB[id]=rest; mission("mpost"); return [201,{message:"Student created"}];
+    }
+    return [405,{detail:"Method Not Allowed"}];
+  }
+  const m = p.match(/^\/students\/([^/]+)$/);
+  if(m){
+    const id = decodeURIComponent(m[1]);
+    if(!["GET","PUT","DELETE"].includes(method)) return [405,{detail:"Method Not Allowed"}];
+    if(method==="PUT"){ const {errs}=validate(body,true); if(errs.length){ mission("m422"); return [422,{detail:errs}]; } }
+    if(!DB[id]){ mission("m404"); return [404,{detail:"Student not found"}]; }
+    if(method==="GET"){ mission("m200"); return [200,DB[id]]; }
+    if(method==="PUT"){ const {out}=validate(body,true); Object.assign(DB[id],out); mission("mput"); return [200,{message:"Student updated",student:DB[id]}]; }
+    delete DB[id]; mission("mdel"); return [200,{message:"Student deleted"}];
+  }
+  return [404,{detail:"Not Found"}];
+}
+function renderMissions(){
+  const el = $("#missions"); if(!el) return;
+  el.innerHTML = MISSIONS.map(x=>`<div class="mis ${S.missions[x.id]?'got':''}"><span class="dot"></span>${x.t}</div>`).join("");
+}
+function renderPlay(){
+  $("#main").innerHTML = `<div class="stack">
+    <section class="panel chhead">
+      <span class="eyebrow">Practice</span>
+      <h2>API Playground</h2>
+      <p class="goal" style="margin:0">A pretend version of the finished JSON API (end of Chapter 6), running right in this page. Send requests, break things on purpose, and read the responses exactly like you would in <code>/docs</code>.</p>
+    </section>
+    <section class="panel"><h3>Missions <span class="chip xp" style="vertical-align:middle">+${XP.mission} XP each</span></h3><div class="missions" id="missions"></div></section>
+    <section class="panel stack">
+      <div class="presets">${PRESETS.map((x,i)=>`<button class="btn small" data-preset="${i}"><span class="mth ${x.m}" style="width:auto;padding:1px 6px;margin-right:6px">${x.m}</span>${x.l}</button>`).join("")}</div>
+      <form id="reqForm" class="stack" style="gap:10px">
+        <div class="req">
+          <select id="pgMethod" aria-label="Method"><option>GET</option><option>POST</option><option>PUT</option><option>DELETE</option></select>
+          <input type="text" id="pgPath" aria-label="Path" value="/students/S001" autocomplete="off" spellcheck="false">
+          <button class="btn primary" type="submit">Send</button>
+        </div>
+        <div id="bodyWrap" hidden><label for="pgBody" style="font-size:.85rem;color:var(--muted)">Request body (JSON)</label><textarea id="pgBody" spellcheck="false"></textarea></div>
+      </form>
+      <div class="resp"><div class="code-h"><span>Response</span><span id="pgStatus" class="status st0">waiting</span></div><pre id="pgOut" style="margin:0;padding:14px 16px;overflow-x:auto;font-size:.84rem;min-height:120px">Press Send, or pick a preset above.</pre></div>
+      <div class="confirm"><button class="btn small" id="pgReset">Reset data to the original 5 students</button></div>
+    </section>
+  </div>`;
+  renderMissions(); syncBody();
+}
+function syncBody(){ const m=$("#pgMethod"); if(m) $("#bodyWrap").hidden = !(m.value==="POST"||m.value==="PUT"); }
+
+/* ------------------------------------------------------------------ routing + events */
+function go(v, push=true){
+  view = v;
+  if(v==="home") renderHome(); else if(v==="play") renderPlay(); else renderChapter(parseInt(v.slice(2),10));
+  renderRail(); renderHeader();
+  if(push){ try{ history.replaceState(null,"","#"+v); }catch(e){} }
+  window.scrollTo({top:0,behavior:"auto"});
+}
+document.addEventListener("click", e=>{
+  const g = e.target.closest("[data-go]"); if(g){ go(g.dataset.go); return; }
+  const o = e.target.closest("[data-q]");
+  if(o){
+    const k=o.dataset.q, j=+o.dataset.o, [cid,qi]=k.split("-").map(Number), q=CH.find(c=>c.id===cid).quiz[qi];
+    const st = S.quiz[k] || {tries:0, solved:false, first:false};
+    st.tries++;
+    if(j===q.a){
+      st.solved=true; st.first = st.tries===1; S.quiz[k]=st; save();
+      const box=$("#q"+k); box.querySelectorAll(".opt").forEach((b,bi)=>{ b.disabled=true; if(bi===q.a) b.classList.add("right"); });
+      box.querySelector(".why").hidden=false;
+      toast(st.first?`Correct! +${XP.quiz} XP`:"Correct!"); renderHeader(); checkComplete(cid);
+    } else { S.quiz[k]=st; save(); o.classList.add("wrong"); o.disabled=true; toast("Not quite. Try another answer."); }
+    return;
+  }
+  const pr = e.target.closest("[data-preset]");
+  if(pr){ const x=PRESETS[+pr.dataset.preset]; $("#pgMethod").value=x.m; $("#pgPath").value=x.p; $("#pgBody").value = x.b?JSON.stringify(x.b,null,2):""; syncBody(); return; }
+  if(e.target.id==="pgReset"){ DB = JSON.parse(DATASET); $("#pgOut").textContent="Data reset."; $("#pgStatus").className="status st0"; $("#pgStatus").textContent="reset"; return; }
+  if(e.target.id==="resetBtn"){ $("#resetRow").innerHTML = `<span>Clear all XP, ticks and badges?</span><button class="btn small" id="resetYes" style="border-color:var(--err);color:var(--err)">Yes, reset</button><button class="btn small" id="resetNo">Cancel</button>`; return; }
+  if(e.target.id==="resetYes"){ S={checks:{},quiz:{},done:{},missions:{}}; save(); toast("Progress reset"); go("home"); return; }
+  if(e.target.id==="resetNo"){ renderHome(); return; }
+});
+document.addEventListener("change", e=>{
+  if(e.target.dataset && e.target.dataset.check){
+    const k=e.target.dataset.check; S.checks[k]=e.target.checked; save();
+    if(e.target.checked) toast(`+${XP.check} XP`);
+    renderHeader(); checkComplete(parseInt(k.split("-")[0],10));
+  }
+  if(e.target.id==="pgMethod") syncBody();
+});
+document.addEventListener("submit", e=>{
+  if(e.target.id!=="reqForm") return;
+  e.preventDefault();
+  const [code, data] = handle($("#pgMethod").value, $("#pgPath").value.trim(), $("#pgBody").value);
+  const st=$("#pgStatus"); st.textContent = code + " " + ({200:"OK",201:"Created",400:"Bad Request",404:"Not Found",405:"Method Not Allowed",422:"Unprocessable Entity"}[code]||"");
+  st.className = "status " + (code<300?"st2":"st4");
+  $("#pgOut").innerHTML = hl(JSON.stringify(data,null,2),"json");
+});
+
+const start = (location.hash||"").slice(1);
+go(/^(home|play|ch([1-9]|10))$/.test(start) ? start : "home", false);
+</script>
+
+</body></html>

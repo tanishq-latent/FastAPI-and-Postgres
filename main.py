@@ -115,10 +115,16 @@ def get_db():
 
 # Part 8: Create the FastAPI app
 from fastapi import FastAPI, Path, Depends, Query
+from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
 
 app = FastAPI()
-
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins = ["*"],
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 # Part 9: GET one student
 #Depends(get_db) means: "Before running this endpoint, run the get_db() function and give me what it returns."
